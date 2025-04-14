@@ -40,7 +40,7 @@ class PlayField extends FlxTypedContainer<FlxBasic>
 			var receptor = new Receptor({
 				lane: i,
 				player: 0
-			});
+			}, this);
 			receptors.add(receptor);
 		}
 
@@ -62,7 +62,6 @@ class PlayField extends FlxTypedContainer<FlxBasic>
 	override function update(elapsed:Float)
 	{
 		super.update(elapsed);
-
 		// update arrow positioning
 		receptors.forEach(receptor ->
 		{

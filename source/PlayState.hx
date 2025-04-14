@@ -24,7 +24,8 @@ class PlayState extends FlxState
 		add(background);
 
 		musicPlayback = new Playback();
-		musicPlayback.bpm = 96;
+		musicPlayback.bpm = 174;
+		musicPlayback.offset = -0.045 * 1000;
 		add(musicPlayback);
 
 		playField = new PlayField(musicPlayback);
@@ -36,7 +37,8 @@ class PlayState extends FlxState
 			FlxG.sound.play(b % musicPlayback.beatsPerMeasure == 0 ? AssetPaths.tick1__ogg : AssetPaths.tick2__ogg);
 		});
 
-		FlxG.sound.playMusic(AssetPaths.song__ogg);
+		FlxG.sound.playMusic(AssetPaths.Try_This__ogg);
+		FlxG.sound.music.volume -= 0.2;
 	}
 
 	override public function update(elapsed:Float)

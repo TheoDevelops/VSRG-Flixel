@@ -64,7 +64,7 @@ class ArrowBuffer extends FlxTypedContainer<Arrow>
 		#if cpp
 		untyped data.length = 0;
 		#else
-		data.slice(0, data.length);
+		data.splice(0, data.length);
 		#end
 
 		data = null;
@@ -74,6 +74,7 @@ class ArrowBuffer extends FlxTypedContainer<Arrow>
 		_activeLength = 0;
 	}
 
+	// lool
 	private inline function ensurePoolCapacity()
 	{
 		if (_poolLength >= _pool.length)
@@ -105,12 +106,10 @@ class ArrowBuffer extends FlxTypedContainer<Arrow>
 			_poolLength--;
 			arrow = _pool[_poolLength];
 			_pool[_poolLength] = null;
-			trace('the arrow was taken from a pool');
 		}
 		else
 		{
 			arrow = new Arrow(parent);
-			trace('the arrow is a new one');
 		}
 
 		arrow.exists = true;
@@ -137,6 +136,7 @@ class ArrowBuffer extends FlxTypedContainer<Arrow>
 	{
 		super.update(elapsed);
 
+		// arrow deletion
 		if (_activeLength > 0)
 		{
 			var i = _activeLength - 1;
@@ -150,7 +150,8 @@ class ArrowBuffer extends FlxTypedContainer<Arrow>
 					continue;
 				}
 
-				if (arrow.time - playback.time < -deletionWindowSize)
+				// endTime = time + holdLength
+				if (arrow.endTime - playback.time < -deletionWindowSize)
 				{
 					putArrow(arrow);
 
@@ -165,6 +166,7 @@ class ArrowBuffer extends FlxTypedContainer<Arrow>
 			}
 		}
 
+		// arrow generation
 		if (_queuePosition < _queuedArrows.length)
 		{
 			while (_queuedArrows[_queuePosition].time - playback.time <= generationWindow)
