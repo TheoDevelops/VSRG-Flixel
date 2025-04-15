@@ -26,7 +26,7 @@ class PlayField extends FlxTypedContainer<FlxBasic>
 	public var chart:Chart;
 	public var scrollSpeed:Float = 1.2;
 
-	public var cpu:Bool = false;
+	public var cpu:Bool = true;
 
 	public function new(playback:Playback)
 	{
@@ -66,101 +66,67 @@ class PlayField extends FlxTypedContainer<FlxBasic>
 	{
 		final activeArrows = arrows._activeArrows;
 		final validations = [false, false, false, false];
-		if (!cpu)
+		// update arrow input
+		var helds = [
+			FlxG.keys.checkStatus(D, PRESSED),
+			FlxG.keys.checkStatus(F, PRESSED),
+			FlxG.keys.checkStatus(J, PRESSED),
+			FlxG.keys.checkStatus(K, PRESSED)
+		];
+		var taps = [
+			FlxG.keys.checkStatus(D, JUST_PRESSED),
+			FlxG.keys.checkStatus(F, JUST_PRESSED),
+			FlxG.keys.checkStatus(J, JUST_PRESSED),
+			FlxG.keys.checkStatus(K, JUST_PRESSED)
+		];
+
+		if (cpu)
 		{
-			// update arrow input
-			final helds = [
-				FlxG.keys.checkStatus(D, PRESSED),
-				FlxG.keys.checkStatus(F, PRESSED),
-				FlxG.keys.checkStatus(J, PRESSED),
-				FlxG.keys.checkStatus(K, PRESSED)
-			];
-			final taps = [
-				FlxG.keys.checkStatus(D, JUST_PRESSED),
-				FlxG.keys.checkStatus(F, JUST_PRESSED),
-				FlxG.keys.checkStatus(J, JUST_PRESSED),
-				FlxG.keys.checkStatus(K, JUST_PRESSED)
-			];
-
-			if (helds.contains(true) || taps.contains(true))
-			{
-				for (i in 0...arrows._activeLength)
-				{
-					if (!validations.contains(false))
-						break;
-					final arrow = activeArrows[i];
-
-					final lane = arrow.data.lane;
-
-					// update hold logic
-					if (arrow.holding)
-					{
-						final held = helds[lane];
-						if (!held)
-						{
-							arrow.holding = false;
-							onArrowMiss.dispatch(arrow);
-						}
-						else
-						{
-							arrow.tail.updateClipping();
-							arrow.hit = true;
-						}
-					}
-
-					// prevent multiple hits at the same lane at the same frame
-					if (validations[lane])
-						continue;
-					final distance = arrow.time - playback.time;
-					final insideWindow = (distance <= Constants.VALID_HIT_WINDOW * Constants.EARLY_WINDOW_MULT)
-						|| (-distance >= Constants.VALID_HIT_WINDOW * -Constants.LATE_WINDOW_MULT);
-
-					// arrow was hit
-					if (insideWindow && taps[lane] && !arrow.hit)
-					{
-						onArrowHit.dispatch(arrow);
-
-						arrow.hit = true;
-
-						if (!arrow.hasHold)
-							arrow.delete = true;
-						else
-							arrow.holding = true;
-
-						validations[lane] = true;
-					}
-				}
-			}
-			for (i in 0...validations.length)
-			{
-				if (helds[i])
-					receptors.members[i]._scaleOff = validations[i] ? 0.075 : -0.025;
-				else
-					receptors.members[i]._scaleOff = 0;
-			}
+			taps = [true, true, true, true];
+			helds = [false, false, false, false];
 		}
-		else
+
+		final arrowsHeld = [false, false, false, false];
+
+		if (helds.contains(true) || taps.contains(true))
 		{
 			for (i in 0...arrows._activeLength)
 			{
 				if (!validations.contains(false))
 					break;
-
 				final arrow = activeArrows[i];
+
 				final lane = arrow.data.lane;
 
+				// update hold logic
 				if (arrow.holding)
 				{
-					arrow.tail.updateClipping();
-					arrow.hit = true;
+					final held = cpu || helds[lane];
+					if (!held)
+					{
+						arrow.holding = false;
+						onArrowMiss.dispatch(arrow);
+					}
+					else
+					{
+						arrow.tail.updateClipping();
+						arrow.hit = true;
+						arrowsHeld[lane] = true;
+
+						if (cpu)
+							helds[lane] = true;
+					}
 				}
 
+				// prevent multiple hits at the same lane at the same frame
 				if (validations[lane])
 					continue;
-
 				final distance = arrow.time - playback.time;
+				final insideWindow = cpu ? distance <= 0 : (distance <= Constants.VALID_HIT_WINDOW * Constants.EARLY_WINDOW_MULT)
+					|| (-distance >= Constants.VALID_HIT_WINDOW * -Constants.LATE_WINDOW_MULT);
 
-				if (!arrow.hit && distance <= 0 && !validations[arrow.data.lane])
+				// arrow was hit
+				if (insideWindow && taps[lane] && !arrow.hit)
 				{
 					onArrowHit.dispatch(arrow);
 
@@ -171,10 +137,15 @@ class PlayField extends FlxTypedContainer<FlxBasic>
 					else
 						arrow.holding = true;
 
+					if (cpu)
+						helds[lane] = true;
+
 					validations[lane] = true;
 				}
 			}
 		}
+		for (i in 0...validations.length)
+			receptors.members[i]._scaleOff = helds[i] ? (arrowsHeld[i] ? 0.015 : -0.025) : 0;
 
 		super.update(elapsed);
 
