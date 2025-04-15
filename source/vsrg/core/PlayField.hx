@@ -24,6 +24,9 @@ class PlayField extends FlxTypedContainer<FlxBasic>
 	public var playback:Playback;
 
 	public var chart:Chart;
+	public var scrollSpeed:Float = 1.2;
+
+	public var cpu:Bool = false;
 
 	public function new(playback:Playback)
 	{
@@ -61,7 +64,120 @@ class PlayField extends FlxTypedContainer<FlxBasic>
 
 	override function update(elapsed:Float)
 	{
+		final activeArrows = arrows._activeArrows;
+		final validations = [false, false, false, false];
+		if (!cpu)
+		{
+			// update arrow input
+			final helds = [
+				FlxG.keys.checkStatus(D, PRESSED),
+				FlxG.keys.checkStatus(F, PRESSED),
+				FlxG.keys.checkStatus(J, PRESSED),
+				FlxG.keys.checkStatus(K, PRESSED)
+			];
+			final taps = [
+				FlxG.keys.checkStatus(D, JUST_PRESSED),
+				FlxG.keys.checkStatus(F, JUST_PRESSED),
+				FlxG.keys.checkStatus(J, JUST_PRESSED),
+				FlxG.keys.checkStatus(K, JUST_PRESSED)
+			];
+
+			if (helds.contains(true) || taps.contains(true))
+			{
+				for (i in 0...arrows._activeLength)
+				{
+					if (!validations.contains(false))
+						break;
+					final arrow = activeArrows[i];
+
+					final lane = arrow.data.lane;
+
+					// update hold logic
+					if (arrow.holding)
+					{
+						final held = helds[lane];
+						if (!held)
+						{
+							arrow.holding = false;
+							onArrowMiss.dispatch(arrow);
+						}
+						else
+						{
+							arrow.tail.updateClipping();
+							arrow.hit = true;
+						}
+					}
+
+					// prevent multiple hits at the same lane at the same frame
+					if (validations[lane])
+						continue;
+					final distance = arrow.time - playback.time;
+					final insideWindow = (distance <= Constants.VALID_HIT_WINDOW * Constants.EARLY_WINDOW_MULT)
+						|| (-distance >= Constants.VALID_HIT_WINDOW * -Constants.LATE_WINDOW_MULT);
+
+					// arrow was hit
+					if (insideWindow && taps[lane] && !arrow.hit)
+					{
+						onArrowHit.dispatch(arrow);
+
+						arrow.hit = true;
+
+						if (!arrow.hasHold)
+							arrow.delete = true;
+						else
+							arrow.holding = true;
+
+						validations[lane] = true;
+					}
+				}
+			}
+			for (i in 0...validations.length)
+			{
+				if (helds[i])
+					receptors.members[i]._scaleOff = validations[i] ? 0.075 : -0.025;
+				else
+					receptors.members[i]._scaleOff = 0;
+			}
+		}
+		else
+		{
+			for (i in 0...arrows._activeLength)
+			{
+				if (!validations.contains(false))
+					break;
+
+				final arrow = activeArrows[i];
+				final lane = arrow.data.lane;
+
+				if (arrow.holding)
+				{
+					arrow.tail.updateClipping();
+					arrow.hit = true;
+				}
+
+				if (validations[lane])
+					continue;
+
+				final distance = arrow.time - playback.time;
+
+				if (!arrow.hit && distance <= 0 && !validations[arrow.data.lane])
+				{
+					onArrowHit.dispatch(arrow);
+
+					arrow.hit = true;
+
+					if (!arrow.hasHold)
+						arrow.delete = true;
+					else
+						arrow.holding = true;
+
+					validations[lane] = true;
+				}
+			}
+		}
+
 		super.update(elapsed);
+
 		// update arrow positioning
 		receptors.forEach(receptor ->
 		{
@@ -74,7 +190,7 @@ class PlayField extends FlxTypedContainer<FlxBasic>
 		arrows.forEach(arrow ->
 		{
 			var curX = FlxG.width / 2 + (-2 + arrow.data.lane) * arrow.width;
-			var curY = FlxG.height * 0.1 + (arrow.time - playback.time) * 0.45;
+			var curY = FlxG.height * 0.1 + (arrow.time - playback.time) * 0.45 * scrollSpeed;
 
 			arrow.setPosition(curX, curY);
 		});

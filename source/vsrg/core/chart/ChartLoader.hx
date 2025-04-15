@@ -19,10 +19,23 @@ class ChartLoader
 			},
 			notes: []
 		};
+		// arrow performance test
+		/*
+			for (i in 0...Std.int(20000 / 5))
+			{
+				for (j in 0...4)
+				{
+					parsedChart.notes.push({
+						lane: j,
+						time: i * 5
+					});
+				}
+			}
+			return parsedChart; */
 
-		final chart = new StepMania().fromFile(AssetPaths.Try_This__sm);
+		final chart = new StepMania().fromFile(AssetPaths.KICK_BACK__sm);
 
-		for (note in chart.getNotes('Challenge'))
+		for (note in chart.getNotes('Hard'))
 		{
 			parsedChart.notes.push({
 				lane: note.lane,

@@ -8,6 +8,8 @@ import haxe.ds.Vector;
 import vsrg.core.audio.Playback;
 import vsrg.core.format.Chart.ChartNote;
 
+using vsrg.core.util.SortUtil;
+
 /**
  * arrow rendering component
  */
@@ -32,7 +34,9 @@ class ArrowBuffer extends FlxTypedContainer<Arrow>
 
 	private var _poolLength:Int = 0;
 
+	@:allow(vsrg.core.PlayField)
 	private var _activeArrows:Vector<Arrow>;
+	@:allow(vsrg.core.PlayField)
 	private var _activeLength:Int = 0;
 
 	private inline static var DEFAULT_SIZE:Int = 48;
@@ -128,6 +132,8 @@ class ArrowBuffer extends FlxTypedContainer<Arrow>
 		arrow.visible = false;
 		arrow.active = false;
 
+		arrow.release();
+
 		ensurePoolCapacity();
 		_pool[_poolLength++] = arrow;
 	}
@@ -144,14 +150,8 @@ class ArrowBuffer extends FlxTypedContainer<Arrow>
 			{
 				final arrow = _activeArrows[i];
 
-				if (arrow == null)
-				{
-					i--;
-					continue;
-				}
-
 				// endTime = time + holdLength
-				if (arrow.endTime - playback.time < -deletionWindowSize)
+				if (arrow != null && (arrow.delete || (arrow.endTime - playback.time < -deletionWindowSize)))
 				{
 					putArrow(arrow);
 
@@ -188,8 +188,30 @@ class ArrowBuffer extends FlxTypedContainer<Arrow>
 		for (i in 0..._activeLength)
 			_activeArrows[i].update(elapsed);
 
-		// TODO: sort
+		_activeArrows.nullSort((a, b) ->
+		{
+			return FlxSort.byValues(FlxSort.ASCENDING, a.time, b.time);
+		});
 	}
+
+	/**
+		while (i <= j)
+		{
+			while (vec[i].time < pivot.time)
+				i++;
+			while (vec[j].time > pivot.time)
+				j--;
+
+			if (i <= j)
+			{
+				var tmp = vec[i];
+				vec[i] = vec[j];
+				vec[j] = tmp;
+				i++;
+				j--;
+			}
+	}
+	 */
 
 	override function draw()
 	{
@@ -200,10 +222,6 @@ class ArrowBuffer extends FlxTypedContainer<Arrow>
 	override public inline function forEach(func:Arrow->Void, recursive:Bool = false)
 	{
 		for (i in 0..._activeLength)
-		{
-			final arrow = _activeArrows[i];
-			if (arrow != null)
-				func(arrow);
-		}
+			func(_activeArrows[i]);
 	}
 }

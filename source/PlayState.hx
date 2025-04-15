@@ -24,8 +24,8 @@ class PlayState extends FlxState
 		add(background);
 
 		musicPlayback = new Playback();
-		musicPlayback.bpm = 174;
-		musicPlayback.offset = -0.045 * 1000;
+		musicPlayback.bpm = 204;
+		musicPlayback.offset = 0.617001 * 1000;
 		add(musicPlayback);
 
 		playField = new PlayField(musicPlayback);
@@ -37,7 +37,13 @@ class PlayState extends FlxState
 			FlxG.sound.play(b % musicPlayback.beatsPerMeasure == 0 ? AssetPaths.tick1__ogg : AssetPaths.tick2__ogg);
 		});
 
-		FlxG.sound.playMusic(AssetPaths.Try_This__ogg);
+		/*
+			playField.onArrowHit.add((a) ->
+			{
+				FlxG.sound.play(AssetPaths.hitsound__ogg);
+		});*/
+
+		FlxG.sound.playMusic(AssetPaths.KICK_BACK__ogg);
 		FlxG.sound.music.volume -= 0.2;
 	}
 
